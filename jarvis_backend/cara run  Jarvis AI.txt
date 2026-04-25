@@ -1,0 +1,32 @@
+1. Ketik   windwow + R > ketik > cmd > enter  // pastikan node.js teristal di perangkat anda 
+2. Ketik  cd C:\MarketTradeWeb_V22\jarvis_backend
+3. Ketik  npm install    //kalo sudah terinstall langsung ke nomor 4 
+4. Ketik = 
+  >  node server.js
+berhasil! 71 packages terinstall, 0 vulnerabilities. Lanjut! 
+Sekarang tinggal 1 langkah — jalankan server:  
+
+> node server.js
+
+Kalau berhasil akan muncul: 
+text
+ 
+  
+ 
+==================================================
+  JARVIS AI BACKEND SERVER
+==================================================
+  Port: 3000
+  API:
+  >  http://localhost:3000/api/chat
+  Health: 
+  >  http://localhost:3000/api/health
+==================================================
+ 
+ 
+ 
+
+Biarkan terminal ini terbuka! Lalu buka terminal lain (EMSDK) untuk jalankan web app seperti biasa: 
+text 
+Terminal 2 ? http.server 8000 ? localhost:8000 ? klik tombol "J"
+Sekarang ketik node server.js di terminal yang sama! ?? 

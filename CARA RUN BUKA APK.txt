@@ -1,0 +1,65 @@
+1?? Buka EMSDK prompt:
+cd C:\emsdk\upstream\emscripten
+emcmdprompt.bat
+
+2?? Masuk ke project:
+cd C:\MarketTradeWeb_V22
+3 BUILD WEB 
+build_web.bat
+4 AKTIFKAN WEB
+ python -m http.server 8000 --bind 0.0.0.0
+5 CEK APK WEB DI GOOGLE 
+http://localhost:8000
+ 
+RESET UI CONSULE 
+> localStorage.removeItem("MyTradingApp_Layout"); localStorage.removeItem("MyTradingApp_ChartState"); location.reload();
+
+
+
+
+3?? Jalan server:
+opsi A:
+emrun index.html
+
+opsi B:
+python -m http.server 8000 --bind 0.0.0.0
+
+
+4?? Buka browser:
+http://localhost:8000
+
+jalur BOS BESAR
+http://localhost:8000/?mode=dewa
+
+C:\emsdk\emcmdprompt.bat
+
+
+
+?? Start Resolution: 896x414
+?? Start Resolution: 1396x726
+
+
+
+
+Pindah folder:
+
+cd C:\MarketTradeWeb_V3
+
+
+
+Jalankan:
+
+build_web.bat
+
+
+
+kode reload halaman 
+https://synopsis-social-lan-views.trycloudflare.com/
+
+
+//untuk lihat font emogi di key laptop
+Ketik "charmap" lalu tekan Enter.
+Di jendela yang muncul, pada bagian Font, pilih Segoe UI Symbol.
+
+
+https://x.com/i/grok?conversation=2010147349126087056

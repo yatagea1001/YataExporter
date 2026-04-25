@@ -1,0 +1,15 @@
+[LOG] Build started 
+STEP 3 start 
+main.cpp:4:9: warning: 'IMGUI_USE_WCHAR32' macro redefined [-Wmacro-redefined]
+    4 | #define IMGUI_USE_WCHAR32 // Membuka jalur 32-bit untuk Emoji tingkat tinggi
+      |         ^
+<command line>:2:9: note: previous definition is here
+    2 | #define IMGUI_USE_WCHAR32 1
+      |         ^
+In file included from main.cpp:154:
+In file included from .\UI_ChartTabs.h:25:
+In file included from .\SymbolPickerUI.h:56:
+.\MarketWatchPanel.h:224:43: warning: incomplete format specifier [-Wformat]
+  224 |                 ImGui::TextDisabled("--.--%");
+      |                                           ^
+2 warnings generated.

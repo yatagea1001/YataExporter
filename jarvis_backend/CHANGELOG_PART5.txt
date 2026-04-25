@@ -1,0 +1,54 @@
+============================================================
+  JARVIS AI — EDITING PART 5
+  Swing Analysis + Key Levels + Auto-Context
+============================================================
+Tanggal: 25 April 2026
+Fase: Phase 5
+
+FILE YANG DIUBAH:
+=================
+
+1. main.cpp (MODIFIED +330 baris)
+   - Tambah: #include "JarvisBridge.h" (line 161)
+   - Tambah: struct SwingPoint (line 525)
+   - Tambah: DetectSwingPoints() algorithm (line 532)
+   - Tambah: DetermineTrend() — HH/HL analysis (line 555)
+   - Tambah: JarvisBridge_AddSymbol() (line 588)
+   - Tambah: JarvisBridge_AddIndicator() — 15 tipe (line 593)
+   - Tambah: JarvisBridge_GetActiveSymbol() (line 641)
+   - Tambah: JarvisBridge_GetChartStatus() — auto-context (line 645)
+   - Tambah: JarvisBridge_GetSwingAnalysis() — full swing data (line 708)
+   - Tambah: JarvisBridge_GetKeyLevels() — S/R zones (line 769)
+
+2. JarvisBridge.h (BARU)
+   - 6 function declarations
+   - Dipakai oleh AiAssistant.h dan main.cpp
+
+3. AiAssistant.h (MODIFIED)
+   - Line 188: json::parse() fix (sebelumnya chart_status = string, sekarang = object)
+   - Line 194-195: Kirim tool_data (swing_analysis + key_levels) pre-computed dari C++
+
+4. AiAssistant.cpp (TIDAK DIUBAH — sama seperti Part 4)
+
+5. server.js (REWRITE Phase 5)
+   - 4 tools: chart_add_symbol, chart_add_indicator, chart_analyze_swing, chart_get_key_levels
+   - Two-step function calling (LLM call → inject data → LLM call again)
+   - formatSwingForLLM() + formatKeyLevelsForLLM()
+   - Enhanced system prompt dengan chart context
+   - MOCK mode fallback
+
+6. package.json (BARU)
+   - groq-sdk dependency
+
+7. ai_config.env (BARU)
+   - Template untuk GROQ_API_KEY
+
+CARA INSTALL:
+=============
+1. Copy JarvisBridge.h, main.cpp, AiAssistant.h, AiAssistant.cpp ke project folder
+2. Copy server.js, package.json, ai_config.env ke jarvis_backend/ folder
+3. cd jarvis_backend && npm install
+4. Edit ai_config.env — isi GROQ_API_KEY
+5. Rebuild WASM (build_web.bat)
+6. node server.js
+============================================================

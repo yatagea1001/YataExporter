@@ -872,6 +872,191 @@ std::string JarvisBridge_GetKeyLevels() {
     return result.dump();
 }
 
+// ============================================================
+// DRAW TOOLS — Jarvis AI bisa menggambar langsung di chart
+// Menggunakan GlobalShapeManager (g_shapes)
+// ============================================================
+
+// Helper: Parse hex color string (#RRGGBB or #RRGGBBAA) to ImVec4
+static ImVec4 JarvisHexToColor(const std::string& hex, float alpha = 1.0f) {
+    ImVec4 col(1, 1, 1, alpha);
+    if (hex.size() >= 7 && hex[0] == '#') {
+        unsigned int r, g, b;
+        sscanf(hex.c_str() + 1, "%02x%02x%02x", &r, &g, &b);
+        col.x = (float)r / 255.0f;
+        col.y = (float)g / 255.0f;
+        col.z = (float)b / 255.0f;
+        col.w = alpha;
+    }
+    return col;
+}
+
+// Helper: Resolve candle time index (-1 = last candle)
+static double ResolveCandleTime(double timeIndex) {
+    const auto& candles = g_allCandles[g_activeTF];
+    if (candles.empty()) return 0;
+
+    int lastIdx = (int)candles.size() - 1;
+    int idx = (int)timeIndex;
+    if (idx < 0 || idx > lastIdx) idx = lastIdx;
+
+    // Return the actual time value of the candle at that index
+    // The time is stored as unix timestamp in Candle.time
+    return (double)candles[idx].time;
+}
+
+void JarvisBridge_DrawLine(double time0, double price0, double time1, double price1,
+                           const std::string& color, float thickness,
+                           bool extendLeft, bool extendRight, const std::string& label) {
+    printf("[Jarvis Bridge] DrawLine: %.2f -> %.2f, color=%s\n", price0, price1, color.c_str());
+
+    ImVec4 col = JarvisHexToColor(color);
+    double t0 = ResolveCandleTime(time0);
+    double t1 = ResolveCandleTime(time1);
+
+    g_shapes.AddShape("LINE", t0, price0, t1, price1, col, thickness, false);
+
+    // If label provided, add text at the end point
+    if (!label.empty()) {
+        GlobalShape textShape;
+        textShape.id = g_shapes.GenerateUUID();
+        textShape.type = "TEXT";
+        textShape.time0 = t1;
+        textShape.price0 = price1;
+        textShape.textContent = label;
+        textShape.fontSize = 14.0f;
+        textShape.color = col;
+        textShape.textBg = true;
+        textShape.textBgColor = ImVec4(0, 0, 0, 0.7f);
+        g_shapes.AddShape(textShape);
+    }
+
+    // Apply extend flags to the last added LINE shape
+    auto& shapes = g_shapes.GetEditableShapes();
+    if (!shapes.empty()) {
+        auto& lastShape = shapes.back();
+        if (lastShape.type == "TEXT" && shapes.size() >= 2) {
+            // Label text was added after LINE, so the LINE is second-to-last
+            auto& lineShape = shapes[shapes.size() - 2];
+            if (lineShape.type == "LINE") {
+                lineShape.extendLeft = extendLeft;
+                lineShape.extendRight = extendRight;
+            }
+        } else if (lastShape.type == "LINE") {
+            lastShape.extendLeft = extendLeft;
+            lastShape.extendRight = extendRight;
+        }
+    }
+}
+
+void JarvisBridge_DrawRect(double time0, double price0, double time1, double price1,
+                           const std::string& color, const std::string& fillColor,
+                           float fillOpacity, const std::string& label) {
+    printf("[Jarvis Bridge] DrawRect: %.2f - %.2f, color=%s\n", price0, price1, color.c_str());
+
+    ImVec4 col = JarvisHexToColor(color);
+    ImVec4 fillCol = JarvisHexToColor(fillColor, fillOpacity);
+    double t0 = ResolveCandleTime(time0);
+    double t1 = ResolveCandleTime(time1);
+
+    g_shapes.AddShape("RECT", t0, price0, t1, price1, col, 1.2f, true);
+
+    // Configure the rectangle shape
+    auto& shapes = g_shapes.GetEditableShapes();
+    if (!shapes.empty()) {
+        auto& rectShape = shapes.back();
+        if (rectShape.type == "RECT") {
+            rectShape.filled = true;
+            rectShape.fillColor = JarvisHexToColor(fillColor);
+            rectShape.fillOpacity = fillOpacity;
+            rectShape.rectBorderVisible = true;
+
+            // Add label inside rectangle
+            if (!label.empty()) {
+                rectShape.rectLabel = label;
+                rectShape.rectFontSize = 10.0f;
+                rectShape.textColor = ImVec4(1, 1, 1, 0.9f);
+                rectShape.rectTextAlign = 1;  // Center
+                rectShape.rectVertAlign = 2;  // Bottom
+            }
+        }
+    }
+}
+
+void JarvisBridge_DrawFib(double time0, double price0, double time1, double price1,
+                           const std::string& color) {
+    printf("[Jarvis Bridge] DrawFib: %.2f -> %.2f, color=%s\n", price0, price1, color.c_str());
+
+    ImVec4 col = JarvisHexToColor(color);
+    double t0 = ResolveCandleTime(time0);
+    double t1 = ResolveCandleTime(time1);
+
+    g_shapes.AddShape("FIB", t0, price0, t1, price1, col, 1.0f, false);
+
+    // The Fibonacci shape will automatically use defaultFibConfig from GlobalShapeManager
+    // which includes standard levels (0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.618)
+}
+
+void JarvisBridge_DrawText(double time, double price,
+                           const std::string& text, const std::string& color,
+                           float fontSize) {
+    printf("[Jarvis Bridge] DrawText: \"%s\" at %.2f, color=%s\n", text.c_str(), price, color.c_str());
+
+    ImVec4 col = JarvisHexToColor(color);
+    double t = ResolveCandleTime(time);
+
+    GlobalShape textShape;
+    textShape.id = g_shapes.GenerateUUID();
+    textShape.type = "TEXT";
+    textShape.time0 = t;
+    textShape.price0 = price;
+    textShape.textContent = text;
+    textShape.fontSize = fontSize;
+    textShape.color = col;
+    textShape.textBg = true;
+    textShape.textBgColor = ImVec4(0, 0, 0, 0.6f);
+    g_shapes.AddShape(textShape);
+}
+
+void JarvisBridge_DrawElliot(const std::vector<double>& times,
+                             const std::vector<double>& prices,
+                             const std::string& color, float thickness) {
+    printf("[Jarvis Bridge] DrawElliot: %zu points, color=%s\n", prices.size(), color.c_str());
+
+    if (prices.size() < 2) {
+        printf("[Jarvis Bridge] Elliot needs at least 2 points!\n");
+        return;
+    }
+
+    ImVec4 col = JarvisHexToColor(color);
+    const auto& candles = g_allCandles[g_activeTF];
+    int lastIdx = candles.empty() ? 0 : (int)candles.size() - 1;
+
+    std::vector<double> resolvedTimes;
+    if (times.empty()) {
+        // Distribute points evenly across the visible candle range
+        int startIdx = std::max(0, lastIdx - 200);
+        double step = (double)(lastIdx - startIdx) / (double)(prices.size() - 1);
+        for (size_t i = 0; i < prices.size(); i++) {
+            int idx = startIdx + (int)(step * (double)i);
+            if (idx > lastIdx) idx = lastIdx;
+            resolvedTimes.push_back((double)candles[idx].time);
+        }
+    } else {
+        for (size_t i = 0; i < times.size() && i < prices.size(); i++) {
+            int idx = (int)times[i];
+            if (idx < 0 || idx > lastIdx) idx = lastIdx;
+            resolvedTimes.push_back((double)candles[idx].time);
+        }
+        // Fill remaining if times is shorter than prices
+        while (resolvedTimes.size() < prices.size()) {
+            resolvedTimes.push_back((double)candles[lastIdx].time);
+        }
+    }
+
+    g_shapes.AddElliotShape(resolvedTimes, prices, col);
+}
+
 // ====== TRADE MANAGER: Live & Replay (terpisah) ======
 TradeManager g_liveManager;    // mode live/demo
 TradeManager g_replayManager;  // mode replay

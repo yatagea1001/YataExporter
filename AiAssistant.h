@@ -1,6 +1,6 @@
-// ============================================================
+//===========================================================
 // AiAssistant.h — Jarvis AI Chat UI untuk ImGui/WASM
-// Phase 2: Real chart execution via JarvisBridge
+// Phase 6: Drawing + Swing Analysis + Key Levels
 // ============================================================
 #pragma once
 
@@ -29,6 +29,11 @@ struct ChatMsg {
     std::string tool_result;
     bool tool_success = false;
     int tool_duration_ms = 0;
+
+    // Draw tool info — visual feedback
+    bool has_draw = false;          // true jika ada shape yang digambar
+    std::string draw_type;          // "LINE", "RECT", "FIB", "TEXT", "ELLIOT"
+    std::string draw_description;   // Deskripsi singkat shape yang digambar
 };
 
 struct JarvisState {
@@ -138,6 +143,94 @@ void jarvis_on_response(const char* response_json) {
                         // === REAL EXECUTION via Bridge ===
                         JarvisBridge_AddIndicator(ind, period);
                     }
+                    // ========== DRAW TOOLS ==========
+                    else if (act_name == "chart_draw_line") {
+                        double p0 = act_args.value("price0", 0.0);
+                        double p1 = act_args.value("price1", 0.0);
+                        double t0 = act_args.value("time0", 0.0);
+                        double t1 = act_args.value("time1", -1.0);
+                        std::string color = act_args.value("color", "#FFD700");
+                        float thickness = (float)act_args.value("thickness", 1.5);
+                        bool extL = act_args.value("extend_left", false);
+                        bool extR = act_args.value("extend_right", false);
+                        std::string label = act_args.value("label", "");
+                        // === REAL EXECUTION via Bridge ===
+                        JarvisBridge_DrawLine(t0, p0, t1, p1, color, thickness, extL, extR, label);
+                        // Mark message with draw info
+                        if (!g_jarvis.messages.empty()) {
+                            auto& lastMsg = g_jarvis.messages.back();
+                            lastMsg.has_draw = true;
+                            lastMsg.draw_type = "LINE";
+                            lastMsg.draw_description = "Garis dari " + std::to_string(p0) + " ke " + std::to_string(p1);
+                        }
+                    }
+                    else if (act_name == "chart_draw_rect") {
+                        double p0 = act_args.value("price0", 0.0);
+                        double p1 = act_args.value("price1", 0.0);
+                        double t0 = act_args.value("time0", 0.0);
+                        double t1 = act_args.value("time1", -1.0);
+                        std::string color = act_args.value("color", "#4488FF");
+                        std::string fillColor = act_args.value("fill_color", "#4488FF");
+                        float fillOpacity = (float)act_args.value("fill_opacity", 0.15);
+                        std::string label = act_args.value("label", "");
+                        // === REAL EXECUTION via Bridge ===
+                        JarvisBridge_DrawRect(t0, p0, t1, p1, color, fillColor, fillOpacity, label);
+                        if (!g_jarvis.messages.empty()) {
+                            auto& lastMsg = g_jarvis.messages.back();
+                            lastMsg.has_draw = true;
+                            lastMsg.draw_type = "RECT";
+                            lastMsg.draw_description = label.empty() ? ("Zone " + std::to_string(p0) + " - " + std::to_string(p1)) : label;
+                        }
+                    }
+                    else if (act_name == "chart_draw_fib") {
+                        double p0 = act_args.value("price0", 0.0);
+                        double p1 = act_args.value("price1", 0.0);
+                        double t0 = act_args.value("time0", 0.0);
+                        double t1 = act_args.value("time1", -1.0);
+                        std::string color = act_args.value("color", "#FFD700");
+                        // === REAL EXECUTION via Bridge ===
+                        JarvisBridge_DrawFib(t0, p0, t1, p1, color);
+                        if (!g_jarvis.messages.empty()) {
+                            auto& lastMsg = g_jarvis.messages.back();
+                            lastMsg.has_draw = true;
+                            lastMsg.draw_type = "FIB";
+                            lastMsg.draw_description = "Fibonacci " + std::to_string(p0) + " - " + std::to_string(p1);
+                        }
+                    }
+                    else if (act_name == "chart_draw_text") {
+                        std::string txt = act_args.value("text", "Label");
+                        double price = act_args.value("price", 0.0);
+                        double time = act_args.value("time", -1.0);
+                        std::string color = act_args.value("color", "#FFFFFF");
+                        float fontSize = (float)act_args.value("font_size", 16.0);
+                        // === REAL EXECUTION via Bridge ===
+                        JarvisBridge_DrawText(time, price, txt, color, fontSize);
+                        if (!g_jarvis.messages.empty()) {
+                            auto& lastMsg = g_jarvis.messages.back();
+                            lastMsg.has_draw = true;
+                            lastMsg.draw_type = "TEXT";
+                            lastMsg.draw_description = "Teks: \"" + txt + "\"";
+                        }
+                    }
+                    else if (act_name == "chart_draw_elliot") {
+                        std::vector<double> prices, times;
+                        if (act_args.contains("prices") && act_args["prices"].is_array()) {
+                            for (const auto& p : act_args["prices"]) prices.push_back(p.get<double>());
+                        }
+                        if (act_args.contains("times") && act_args["times"].is_array()) {
+                            for (const auto& t : act_args["times"]) times.push_back(t.get<double>());
+                        }
+                        std::string color = act_args.value("color", "#FF9900");
+                        float thickness = (float)act_args.value("thickness", 1.5);
+                        // === REAL EXECUTION via Bridge ===
+                        JarvisBridge_DrawElliot(times, prices, color, thickness);
+                        if (!g_jarvis.messages.empty()) {
+                            auto& lastMsg = g_jarvis.messages.back();
+                            lastMsg.has_draw = true;
+                            lastMsg.draw_type = "ELLIOT";
+                            lastMsg.draw_description = "Elliot Wave (" + std::to_string(prices.size()) + " titik)";
+                        }
+                    }
                 }
             }
         }
@@ -225,8 +318,11 @@ static const char* QUICK_PROMPTS[] = {
     "Pasang RSI di XAUUSD",
     "Analisa ETHUSDT",
     "Tambah SMA 50 dan EMA 200",
+    "Gambar fib di chart",
+    "Tandai order block",
+    "Gambar trendline",
 };
-static const int NUM_QUICK_PROMPTS = 4;
+static const int NUM_QUICK_PROMPTS = 7;
 
 // ============================================================
 // RENDER — Main ImGui render function
@@ -343,6 +439,23 @@ static void RenderJarvisWindow() {
         }
         ImGui::TextWrapped("%s", msg.content.c_str());
         ImGui::PopStyleColor();
+
+        // Draw tool visual feedback badge
+        if (msg.has_draw) {
+            ImGui::Dummy(ImVec2(0, 4.0f));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.25f, 0.15f, 0.6f));
+            ImGui::BeginChild(("##draw_" + std::to_string(i)).c_str(),
+                ImVec2(-1, 0), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders,
+                ImGuiWindowFlags_None);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.0f, 0.5f, 1.0f));
+            ImGui::Text("[%s]", msg.draw_type.c_str());
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+            ImGui::TextWrapped("%s", msg.draw_description.c_str());
+            ImGui::PopStyleColor(2);
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+        }
 
         ImGui::EndChild();
         ImGui::PopStyleColor();
